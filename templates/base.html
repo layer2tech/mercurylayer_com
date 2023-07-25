@@ -1,0 +1,23 @@
+{% extends "juice/templates/index.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ get_url(path="style.css") }}">
+<link rel="stylesheet"
+          href="https://fonts.googleapis.com/css?family=DM Mono">
+{% endblock head %}
+
+{% block favicon %}
+    <link rel="icon" type="image/png" href="/favicon.png">
+{% endblock favicon %}
+
+{% block footer %}
+<footer>
+    <small class="subtext" style="float;">
+      @ <script>
+        const currentYear = new Date().getFullYear();
+        document.write(currentYear);
+      </script> Mercury Layer Team
+    </small>
+    <a href="/privacy/">Privacy Policy</a>
+  </footer>
+{% endblock footer %}
