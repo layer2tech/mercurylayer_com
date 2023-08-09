@@ -19,7 +19,7 @@ This key update/transfer mechanism is additionally combined with a system of *ba
 
 <br><br>
 <p align="center">
-<img src="fig1.png" align="middle" width="350" vspace="20">
+<img src="fig1.png" align="middle" width="100" vspace="20">
 </p>
 
 <p align="center">

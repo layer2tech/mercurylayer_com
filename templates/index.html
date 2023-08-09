@@ -1,37 +1,60 @@
 {% extends "base.html" %}
 
-{% block hero %}
-<section style="padding:10px; max-width: 500px; color:#fff;">
-    <h1 class="text-center heading-text">
-        Mercury Layer, Bitcoin MPC layer 2 protocol
-    </h1>
-    <h3 class="text-center title-text">
-        A Bitcoin Layer-2 scaling technology based on the concept of statechains,
-        that enable private keys for BTC deposits (UTXOs) to be transferred securely
-        between owners, without the need to broadcast the transaction to the Bitcoin
-        blockchain.
-    </h3>
-</section>
-<div>
-    <video style="border-radius: 100px; max-width: 500px;" muted playsInline autoPlay loop>
-        <source
-            src="mercury-loop-820px-q35.webm"
-            type="video/webm"
-        />
-        <source
-            src="mercury-loop-820px-q35.mp4"
-            type="video/mp4"
-        />
-        <source
-            src="mercury-loop-820px-q35.ogv"
-            type="video/ogg"
-        />
-        Sorry, your browser doesn't support embedded videos.
-    </video>
-</div>
+{% block header %}
+<header class="header">
+  {{ macros::render_header() }}
+</header>
 
-<div class="explore-more text"
-    onclick="document.getElementById('features').scrollIntoView({behavior: 'smooth'})">
-    Explore More ⇩
+{% block hero %}
+<div class = "hero" style="position: relative;">
+    <section style="padding:10px; max-width: 500px; color:#fff;">
+        <h1 class="text-center heading-text">
+            Mercury Layer, Bitcoin MPC layer 2 protocol
+        </h1>
+        <h3 class="text-center title-text">
+            A Bitcoin Layer-2 scaling technology based on the concept of statechains,
+            that enable private keys for BTC deposits (UTXOs) to be transferred securely
+            between owners, without the need to broadcast the transaction to the Bitcoin
+            blockchain.
+        </h3>
+    </section>
+    <div>
+        <video style="border-radius: 100px; max-width: 75%;" muted playsInline autoPlay loop>
+            <source
+                src="mercury-loop-820px-q35.webm"
+                type="video/webm"
+            />
+            <source
+                src="mercury-loop-820px-q35.mp4"
+                type="video/mp4"
+            />
+            <source
+                src="mercury-loop-820px-q35.ogv"
+                type="video/ogg"
+            />
+            Sorry, your browser doesn't support embedded videos.
+        </video>
+    </div>
+
+    <div class="explore-more text"
+        onclick="document.getElementById('features').scrollIntoView({behavior: 'smooth'})">
+        Explore More ⇩
+    </div>
 </div>
+<style>
+    .hero section {
+        padding: 0 5rem;
+    }
+    @media screen and (max-width: 768px) {
+        .hero section {
+            padding: 0 2rem;
+        }
+
+        .hero-image {
+            display: none
+        }
+    }
+</style>
 {% endblock hero %}
+
+{% endblock header %}
