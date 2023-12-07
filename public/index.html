@@ -75,7 +75,7 @@
         </h1>
         <h3 class="text-center title-text">
             Bitcoin Layer-2 scaling technology based on the concept of statechains.
-            Blinded signing technology that blindly signs Bitcoin transactions.
+            Blinded co-signing and key-update technology.
         </h3>
     </section>
     <div>
@@ -187,12 +187,12 @@
 <p>Mercury Layer is an implementation of a layer-2 statechain protocol that enables off-chain transfer and settlement of Bitcoin outputs that remain under the full custody of the owner at all times, while benefiting from instant and zero cost transactions. The ability to perform this transfer without requiring the confirmation (mining) of on-chain transactions has advantages in a variety of different applications. </p>
 <p>This documentation covers the description of the Mercury Layer architecture and protocol, the specification Mercury API and instructions for the deployment and operation of the separate components of the system. </p>
 <h2 id="overview">Overview</h2>
-<p>An <em>unspent transaction outputs</em> (UTXO) is the fundamental object that defines value and ownership in a cryptocurrency such as Bitcoin. A UTXO is identified by a transaction ID (<code>TxID</code>) and output index number (<code>n</code>) and has two properties: 1. A value (in BTC) and 2. Spending conditions (defined in Script). The spending conditions can be arbitrarily complex (within the limits of the consensus rules), but is most commonly defined by a single public key and can only be spent by transaction signed with the corresponding public key. </p>
-<p>The simplest function of the Mercury layer system is to enable the transfer the ownership of individual UTXOs controlled by a single public key <code>P</code> from one party to another without an on-chain (Bitcoin) transaction (or change in the spending condition). The SE facilitates this change of ownership, but has no way to seize, confiscate or freeze the output. To enable this, the private key (<code>s</code>) for <code>P</code> (where <code>P = s.G</code>) is shared between the SE and the owner, such that neither party ever has knowledge of the full private key (which is <code>s = s1 + o1</code> where <code>s1</code> is the SE private key share, and <code>o1</code> is the owner key share) and so cooperation of the owner and SE is required to spend the UTXO. However, by sharing the secret key in this way, the SE can change its key share (<code>s1 -&gt; s2</code>) so that it combines with a new owner key share (<code>o2</code>) with the cooperation of the original owner, but without changing the full key (i.e. <code>s1 + o1 = s2 + o2</code>) all without any party revealing their key shares or learning the full key. The exclusive control of the UTXO then passes to the new owner without an on-chain transaction, and the SE only needs to be trusted to follow the protocol and delete/overwrite the key share corresponding to the previous owner. </p>
-<p>This key update/transfer mechanism is additionally combined with a system of <em>backup</em> transactions which can be used to claim the value of the UTXO by the current owner in the case the SE does not cooperate or has disappeared. The backup transaction is cooperatively signed by the current owner and the SE at the point of transfer, paying to an address controlled by the new owner. To prevent a previous owner (i.e. not the current owner) from broadcasting their backup transaction and stealing the deposit, the <code>nLocktime</code> value of the transaction is set to a future specified block height. Each time the ownership of the UTXO is transferred, the <code>nLocktime</code> is decremented by a specified value, therefore enabling the current owner to claim the deposit before any of the previous owners.</p>
+<p>An <em>unspent transaction output</em> (UTXO) is the fundamental object that defines value and ownership in a cryptocurrency such as Bitcoin. A UTXO is identified by a transaction ID (<code>TxID</code>) and output index number (<code>n</code>) and has two properties: 1. A value (in BTC) and 2. Spending conditions (defined in Script). The spending condition is most commonly defined by a single public key and can only be spent by a transaction signed with the corresponding public key. </p>
+<p>The simplest function of the Mercury layer system is to enable the transfer the ownership of individual UTXOs controlled by a single public key <code>P</code> from one party to another without an on-chain (Bitcoin) transaction (or change in the spending condition). The SE operates as part of the protocol, but has no way to seize, confiscate or freeze the output. To enable this, the private key (<code>s</code>) for <code>P</code> (where <code>P = s.G</code>) is shared between the SE and the owner, such that neither party ever has knowledge of the full private key (which is <code>s = s1 + o1</code> where <code>s1</code> is the SE private key share, and <code>o1</code> is the owner key share) and so cooperation of the owner and SE is required to spend the UTXO. However, by sharing the secret key in this way, the SE can change its key share (<code>s1 -&gt; s2</code>) so that it combines with a new owner key share (<code>o2</code>) with the cooperation of the original owner, but without changing the full key (i.e. <code>s1 + o1 = s2 + o2</code>) all without any party revealing their key shares or learning the full key. The exclusive control of the UTXO then passes to the new owner without an on-chain transaction, and the SE only needs to be trusted to follow the protocol and delete/overwrite the key share corresponding to the previous owner. </p>
+<p>This key update mechanism is additionally combined with a system of <em>backup</em> transactions which can be used to claim the value of the UTXO by the current owner without any interaction with the SE. The backup transaction is signed by the current owner with the SE at the point of transfer, paying to an address controlled by the new owner. To prevent a previous owner (i.e. not the current owner) from broadcasting their backup transaction and stealing the deposit, the <code>nLocktime</code> value of the transaction is set to a future specified block height. Each time the ownership of the UTXO is transferred, the <code>nLocktime</code> is decremented by a specified value, therefore enabling the current owner to claim the deposit before any of the previous owners.</p>
 <p><br><br></p>
 <p align="center">
-<img src="fig1.png" align="middle" width="100" vspace="20">
+<img src="fig1.png" align="middle" width="80" vspace="20">
 </p>
 <p align="center">
   Schematic of confirmed funding transaction, and off-chain signed backup transactions with decrementing nLocktime for a sequence of 4 owners.
@@ -201,13 +201,13 @@
 <p>The decrementing timelock backup mechanism limits the number of transfers that can be made within the lock-out time. The user is responsible for submitting backup transactions to the Bitcoin network at the correct time, and applications will do this automatically.</p>
 <p>The life-cycle of a deposit into the statechain, transfer and withdrawal is summarised as follows:</p>
 <ol>
-<li>The depositor (Owner 1) initiates a UTXO statechain with the SE by paying BTC to an address where Owner 1 and the SE each have private key shares, both of which are required to spend the UTXO. Additionally, the SE and the depositor can cooperate to sign a backup transaction spending the UTXO to a timelocked transaction spending to an address fully controlled by Owner 1 which can be confirmed after the <code>nLocktime</code> block height in case the SE stops cooperating.</li>
+<li>The first owner initiates a UTXO statechain with the SE by paying BTC to an address where Owner 1 and the SE each have private key shares, both of which are required to spend the UTXO. Additionally, the SE and the depositor can cooperate to sign a backup transaction spending the UTXO to a timelocked transaction spending to an address fully controlled by Owner 1 which can be confirmed after the <code>nLocktime</code> block height in case the SE stops cooperating.</li>
 <li>Owner 1 can verifiably transfer ownership of the UTXO to a new party (Owner 2) via a key update procedure that overwrites the private key share of SE that invalidates the Owner 1 private key and <em>activates</em> the Owner 2 private key share. Additionally, the transfer incorporates the cooperative signing of a new backup transaction paying to an address controlled by Owner 2 which can be confirmed after a new <code>nLocktime</code> block height, which is shortened (by an accepted confirmation interval) from the previous owners backup transaction <code>nLocktime</code>.</li>
 <li>This transfer can be repeated multiple times to new owners as required (up until the most recent recovery <code>nLocktime</code> reaches a lower limit determined by the current Bitcoin block height).</li>
 <li>At any time the most recent owner and SE can cooperate to sign a transaction spending the UTXO to an address of the most recent owner's choice (i.e. withdrawal). </li>
 </ol>
 <h2 id="statechains">Statechains</h2>
-<p>The essential function of the Mercury layer system is that it enables 'ownership' (and control) of a UTXO to be transferred between two parties (who don't need to trust each other) via the SE without an on-chain transaction. The SE only needs to be trusted to operate the protocol (and crucially not store any information about previous key shares) and then the transfer of ownership is completely secure, even if the SE was to later get compromised or hacked. At any time the SE can prove that they have the key share for the current owner (and only to the current owner). The current owner is required to sign a <em>statechain transaction</em> (<code>SCTx</code>) with an owner key to transfer ownership to a new owner (i.e. a new owner key). This means that any theft of the UTXO by the collusion of a corrupt SE and old owner can be independently and conclusively proven.</p>
+<p>The essential function of the Mercury layer system is that it enables 'ownership' (and control) of a UTXO to be transferred between two parties (who don't need to trust each other) via the SE key update without an on-chain transaction. The SE only needs to be trusted to operate the protocol (and crucially not store any information about previous key shares) and then the transfer of ownership is completely secure, even if the SE was to later get compromised or hacked. At any time the SE can be asked to prove that they have the key share for the current owner (and only to the current owner). The current owner is required to sign a <em>statechain transaction</em> (<code>SCTx</code>) with an owner key to transfer ownership to a new owner (i.e. a new owner key). This means that any theft of the UTXO by the collusion of a corrupt SE and old owner can be independently and conclusively proven.</p>
 <h2 id="blinding">Blinding</h2>
 <p>The Mercury layer server is <em>blind</em> - that is the server <em>does not</em> and <em>cannot</em> know anything that would enable it to identify the coin (UTXO) that it is co-signing for. This prevents any censorship and storage of any identifying data in the server - the server itself is not aware of bitcoin, and does not perform any verifcation of transactions. </p>
 <p>To achieve this the server cannot know or be able to derive in any way the following values:</p>
@@ -238,10 +238,10 @@ The design changes required are then as follows:</p>
 <p>The SE and each owner are required to generate private keys securely. Owners are required to verify ownership of UTXOs (this can be achieved via a wallet interface, and requires connection to an Electrum server or fully verifying Bitcoin node). Elliptic curve points (public keys) are depicted as upper case letter, and private keys as lower case letters. Elliptic curve point multiplication (i.e. generation of public keys from private keys) is denoted using the <code>.</code> symbol. The generator point of the elliptic curve standard used (e.g. secp256k1) is denoted as <code>G</code>. All arithmetic operations on secret values (in Zp) are modulo the field the EC standard.</p>
 <p>In addition, a public key encryption scheme is required for blinded private key information sent between parties. This should be compatible with the EC keys used for signatures, and ECIES is used. The notation for the use of ECIES operations is as follows: <code>Enc(m,K)</code> denotes the encryption of message <code>m</code> with public key <code>K = k.G</code> and <code>Dec(m,k)</code> denotes the decryption of message <code>m</code> using private key <code>k</code>.</p>
 <p>All transactions are created and signed using segregated witness, which enables input transaction IDs to be determined before signing and prevents their malleability. </p>
-<h2 id="deposit">Deposit</h2>
-<p>An user wants to deposit an amount of BTC into the platform, and they request that the SE begin initialize the process. To begin, the user must provide a valid <code>token_id</code> (UUID), which will be listed in the the server token database. This <code>token_id</code> is generated by the SE on payment of a deposit fee (via a separate lighning or bitcoin payment). </p>
+<h2 id="deposit">Initiation</h2>
+<p>An user wants to create a statecoin for a specific amount of BTC, and they request that the SE begin initialize the process. To begin, the user must provide a valid <code>token_id</code> (UUID), which will be listed in the the server token database. This <code>token_id</code> is generated by the SE on payment of a deposit fee (via a separate lighning or bitcoin payment). </p>
 <ol>
-<li>The depositor (Owner 1) generates a private key: <code>o1</code> (the UTXO private key share).</li>
+<li>The initiator (Owner 1) generates a private key: <code>o1</code> (the UTXO private key share).</li>
 <li>Owner 1 then calculates the corresponding public key of the share <code>O1</code> and sends it to the SE: <code>O1 = o1.G</code></li>
 <li>Owner 1 requests a key share from the SE with a valid <code>token_id</code> and amount value <code>A</code>. </li>
 <li>The SE then generates a private key: <code>s1</code> (the SE private key share), calculates the corresponding public key and sends it to Owner 1: <code>S1 = s1.G</code> along with a <code>statechain_id</code> (UUID). The SE then stores <code>s1</code>, <code>S1</code> and <code>A</code> indexed with <code>statechain_id</code>. </li>
@@ -262,7 +262,7 @@ Owner 1 computes <code>sig2_1 = r2_1 + c1.o1</code> and <code>sig_1 = sig1_1 + s
 <li><code>Tx1</code> is verified and stored by Owner 1, along with the values <code>b1</code>, <code>R1_1</code> and <code>e1</code>. </li>
 <li>The SE then adds the public key <code>S1</code> to the list of current statechain SE keys and publishes. </li>
 </ol>
-<h2 id="transfer">Transfer</h2>
+<h2 id="transfer">Key Transfer</h2>
 <p>Owner 1 wishes to transfer the value of the deposit <code>A</code> to a new owner (Owner 2) (as a payment or as part of a swap). The protocol then proceeds as follows:</p>
 <h3 id="sender">Sender</h3>
 <ol>
@@ -316,16 +316,16 @@ d. Verifies the commitments to <code>R2_i</code> and <code>bi</code> and verfies
 <ol start="8">
 <li>The SE then adds the public key <code>S2</code> to the list of active key shares and publishes. </li>
 </ol>
-<h2 id="orderly-withdrawal">Orderly Withdrawal</h2>
-<p>The current owner of a coin can at any time withdraw from the platform by simply co-signing a withdrawal transaction. The server cannot identify a withdrawal, but the coin can no longer be transferred to a new owner because the server will have produced an additional signature that cannot be verified as a valid backup by a receiver. </p>
-<p>Withdrawal proceeds as follows:</p>
+<h2 id="orderly-withdrawal">Orderly Closure</h2>
+<p>The current owner of a coin can at any time close the statecoin by simply co-signing a transaction paying to any specified address. The server cannot identify this transaction, but the coin can no longer be transferred to a new owner because the server will have co-signed more signatures that cannot be verified as a valid backup by a receiver. </p>
+<p>Closure proceeds as follows:</p>
 <ol>
-<li>The current owner (e.g. Owner 2) creates an unsigned transaction <code>TxW</code> that spends <code>Tx0</code> to a withdrawal address <code>W</code>.</li>
+<li>The current owner (e.g. Owner 2) creates an unsigned transaction <code>TxW</code> that spends <code>Tx0</code> to a closure address <code>W</code>.</li>
 <li>The owner then co-signs this transaction with the SE (as above).  <code>TxW</code> is broadcast. </li>
-<li>The owner then sends the SE a withdrawal notification (with their current <code>user_id</code>) that the coin is withdrawn so the SE can remove the coin public from the published key share list. </li>
+<li>The owner then sends the SE a closure notification (with their current <code>user_id</code>) that the shared key is closed so the SE can remove the public from the published key share list. </li>
 </ol>
-<h2 id="backup-withdrawal">Backup withdrawal</h2>
-<p>In the case that the SE disappears or does not cooperate with the current owner, the current owner can reclaim their funds to an address they control by submitting their backup transaction when the <code>nLocktime</code> is reached. </p>
+<h2 id="backup-withdrawal">Backup closure</h2>
+<p>In the case that the SE does not cooperate with the current owner, the current owner can close to an address they control by submitting their backup transaction when the <code>nLocktime</code> is reached. </p>
 
             
         </div>
