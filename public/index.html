@@ -71,11 +71,10 @@
 <div class = "hero" style="position: relative;">
     <section style="padding:10px; max-width: 500px; color:#fff;">
         <h1 class="text-center heading-text">
-            Mercury Layer, Bitcoin MPC layer 2 protocol, using blinded signatures.
+            Mercury Layer
         </h1>
         <h3 class="text-center title-text">
-            Bitcoin Layer-2 scaling technology based on the concept of statechains.
-            Blinded co-signing and key-cycling technology.
+            Blinded multiparty computation technology enabling statechains: a self-custodial layer 2 scaling solution for Bitcoin. 
         </h3>
     </section>
     <div>
@@ -139,11 +138,11 @@
                 </div>
                 
                 <div class="toc-item-child">
-                    <a class="subtext" href="https://www.mercurylayer.com/#statechains"><small>- Statechains</small></a>
+                    <a class="subtext" href="https://www.mercurylayer.com/#service"><small>- Mercury layer service</small></a>
                 </div>
                 
                 <div class="toc-item-child">
-                    <a class="subtext" href="https://www.mercurylayer.com/#blinding"><small>- Blinding</small></a>
+                    <a class="subtext" href="https://www.mercurylayer.com/#statechains"><small>- Statechain transfers</small></a>
                 </div>
                 
                 
@@ -184,147 +183,145 @@
             
             <div id="features" class="heading-text">Overview</div>
             <h1 id="mercury-layer">Mercury Layer</h1>
-<p>Mercury Layer is an implementation of a layer-2 statechain protocol that enables off-chain transfer and settlement of Bitcoin outputs that remain under the full custody of the owner at all times, while benefiting from instant and zero cost transactions. The ability to perform this transfer without requiring the confirmation (mining) of on-chain transactions has advantages in a variety of different applications. </p>
-<p>This documentation covers the description of the Mercury Layer architecture and protocol, the specification Mercury API and instructions for the deployment and operation of the separate components of the system. </p>
+<p>Mercury layer is an implementation of a system the uses a blind co-signing and key-update service to enable statechains on Bitcoin. The statechain protocol allows the transfer of ownership of Bitcoin unspent transaction outputs (UTXOs) that remain under the full custody of the owner at all times, while benefiting from instant and zero cost transactions. The ability to perform this transfer without requiring the confirmation (mining) of on-chain transactions has advantages in a variety of different applications. </p>
 <h2 id="overview">Overview</h2>
-<p>An <em>unspent transaction output</em> (UTXO) is the fundamental object that defines value and ownership in a cryptocurrency such as Bitcoin. A UTXO is identified by a transaction ID (<code>TxID</code>) and output index number (<code>n</code>) and has two properties: 1. A value (in BTC) and 2. Spending conditions (defined in Script). The spending condition is most commonly defined by a single public key and can only be spent by a transaction signed with the corresponding public key. </p>
-<p>The simplest function of the Mercury layer system is to enable the transfer of the ownership of individual UTXOs controlled by a single public key <code>P</code> from one party to another without an on-chain (Bitcoin) transaction (or change in the spending condition). The SE facilitates this change of ownership, but has no way to seize, confiscate or freeze the output. To enable this, the private key (<code>s</code>) for <code>P</code> (where <code>P = s.G</code>) is shared between the SE and the owner, such that neither party ever has knowledge of the full private key (which is <code>s = s1 + o1</code> where <code>s1</code> is the SE private key share, and <code>o1</code> is the owner key share) and so cooperation of the owner and SE is required to spend the UTXO. However, by sharing the secret key in this way, the SE can modify its key share (<code>s1 -&gt; s2</code>) so that it combines with a new owner key share (<code>o2</code>) with the cooperation of the original owner, but without changing the full shared key (i.e. <code>s1 + o1 = s2 + o2</code>) all without any party revealing their key shares or learning the full key. The exclusive control of the UTXO then passes to the new owner without an on-chain transaction, and the SE only needs to be trusted to delete/overwrite the key share corresponding to the previous owner. </p>
-<p>This key update/transfer mechanism is additionally combined with a system of <em>backup</em> transactions which can be used to claim the value of the UTXO by the current owner in the case the SE does not cooperate or has disappeared. The backup transaction is cooperatively signed by the current owner and the SE at the point of transfer, paying to an address controlled by the new owner. To prevent a previous owner (i.e. not the current owner) from broadcasting their backup transaction and stealing the deposit, the <code>nLocktime</code> value of the transaction is set to a future specified block height. Each time the ownership of the UTXO is transferred, the <code>nLocktime</code> is decremented by a specified value, therefore enabling the current owner to claim the coin before any of the previous owners.</p>
+<p>The Mercury layer system employs a service provider (the mercury layer blind <em>server</em>) that generates and updates key shares (or key fragments) on request in addition to a count of partial blinded signatures. By updating (‘cycling’) a key share and reporting the number of  partial blinded signatures generated for the share, the ownership of individual UTXOs can be transferred between counterparties instantly and at zero marginal cost in a secure and fully self-custodial way. The blind key-update server never has control or custody, and is never aware of the identity of any specific UTXO. </p>
+<p>This system requires that all bitcoin transaction operations and statechain verification are performed entirely by client-side software. </p>
 <p><br><br></p>
 <p align="center">
 <img src="fig1.png" align="middle" width="60" vspace="20">
 </p>
 <p align="center">
-  Schematic of confirmed funding transaction, and off-chain signed backup transactions with decrementing nLocktime for a sequence of 4 owners.
+  Blind mercury server operations
 </p>
 <br><br>
-<p>The decrementing timelock backup mechanism limits the number of transfers that can be made within the lock-out time. The user is responsible for submitting backup transactions to the Bitcoin network at the correct time, and applications will do this automatically.</p>
+
+<h2 id="service">Mercury layer service</h2>
+<p>The mercury layer service generates a private key share <code>s1</code> on initialisation of a session. In order to initialise a session, a client must provide a valid <code>token_id</code> which controls access to the service (and is generated separately typically after payment of a fee).</p>
+<p>The client initialises a session with an <code>auth_pubkey</code> which is used to authenticate all subsequent messages with the server. The server responds with the public elliptic curve point corresponding to the server private key share <code>s1</code>.</p>
+<p>Once initialised, the server can then perform two operations using the key share upon request:</p>
+<ol>
+<li>Partial signature generation - the server uses the key share to compute a partial signature from a blinded challenge value provided by the client.</li>
+<li>Key update - a blinded value is sent to the server and used to update the key share along with an new <code>auth_pubkey</code>. The previous key share is deleted securely by the server.</li>
+</ol>
+<p>The server does not ever receive any other information regarding the client state. </p>           
+<h2 id="statechains">Statechain transfers</h2>
+<p>Using the mercury service, clients can use the key share update rules applied by the server to securely transfer ownership of a Bitcoin UTXO to a new client while maintaining self-custody without requiring a blockchain transaction. </p>
+<p>This is achieved by depositing an amount of bitcoin to an address which is formed in part from the server public key share, and then requesting partial signature from the server to either spend the coin or create ‘backup transactions’ to protect against server unavailability (i.e. unilateral on-chain exit). Transfers to new clients are secured by the server key update, enabling the UTXO deposit address to stay the same, while removing the ability of a previous owner to steal the funds. </p>
+<p>This key update mechanism is additionally combined with a system of backup transactions which can be used to claim the value of the UTXO by the current owner in the case the SE does not cooperate or has disappeared. The backup transaction is created by the current owner and the SE at the point of transfer, paying to an address controlled by the new owner. To prevent a previous owner (i.e. not the current owner) from broadcasting their backup transaction and stealing the deposit, the nLocktime value of the transaction is set to a future specified block height. Each time the ownership of the UTXO is transferred, the nLocktime is decremented by a specified value, therefore enabling the current owner to claim the coin before any of the previous owners.</p>
+<p>The decrementing timelock backup mechanism limits the number of transfers that can be made within the lock-out time. The user is responsible for submitting backup transactions to the Bitcoin network at the correct time, and applications can do this automatically.</p>
 <p>The life-cycle of a coin in the statechain, key reassignment and closure is summarised as follows:</p>
 <ol>
-<li>The first owner initiates a UTXO statechain with the SE by paying BTC to an address where Owner 1 and the SE each have private key shares, both of which are required to spend the UTXO. Additionally, the SE and the initiator cooperate to sign a backup transaction spending the UTXO to a timelocked transaction spending to an address fully controlled by Owner 1 which can be confirmed after the <code>nLocktime</code> block height in case the SE stops cooperating.</li>
-<li>Owner 1 can verifiably transfer ownership of the UTXO to a new party (Owner 2) via a key update procedure that overwrites the private key share of SE that invalidates the Owner 1 private key and <em>activates</em> the Owner 2 private key share. Additionally, the transfer incorporates the cooperative signing of a new backup transaction paying to an address controlled by Owner 2 which can be confirmed after a new <code>nLocktime</code> block height, which is reduced (by an accepted confirmation interval) from the previous owners backup transaction <code>nLocktime</code>.</li>
-<li>This transfer can be repeated multiple times to new owners as required (up until the most recent recovery <code>nLocktime</code> reaches a lower limit determined by the current Bitcoin block height).</li>
-<li>At any time the most recent owner and SE can cooperate to sign a transaction spending the UTXO to an address of the most recent owner's choice (i.e. closure). </li>
-</ol>
-<h2 id="statechains">Statechains</h2>
-<p>The essential function of the Mercury layer system is that it enables 'ownership' (and control) of a UTXO to be transferred between two parties (who don't need to trust each other) via the SE without an on-chain transaction. The SE only needs to be trusted to not store any information about previous key shares and then the transfer of ownership is completely secure, even if the SE was to later get compromised or hacked. At any time the SE can prove that they have the key share for the current owner (and only to the current owner). The current owner is required to sign a <em>statechain transaction</em> (<code>SCTx</code>) with an owner key to transfer ownership to a new owner (i.e. a new owner key). This means that any theft of the UTXO by the collusion of a corrupt SE and old owner can be independently and conclusively proven.</p>
-<h2 id="blinding">Blinding</h2>
-<p>The Mercury layer server is <em>blind</em> - that is the server <em>does not</em> and <em>cannot</em> know anything that would enable it to identify the coin (UTXO) that it is co-signing for. This prevents any censorship and storage of any identifying data in the server - the server itself is not aware of bitcoin, and does not perform any verifcation of transactions. </p>
+<li>The first owner initiates a statechain by paying an amount of bitcoin to an address where the corresponding public key is formed from both the first owner public key share and the server public key share. The first owner creates a timelocked backup transaction spending the statechain UTXO to an address fully controlled by the first owner which can be confirmed after the nLocktime block height in case the server stops cooperating.</li>
+<li>The owner can verifiably transfer ownership of the UTXO to a new party (Owner 2) via a key update procedure that overwrites the private key share of server that invalidates the first owner private key and activates the new owner private key share. Additionally, the transfer incorporates the signing of a new backup transaction paying to an address controlled by the new owner which can be confirmed after a new nLocktime block height, which is reduced (by an accepted confirmation interval) from the previous owners backup transaction nLocktime.</li>
+<li>This transfer can be repeated multiple times to new owners as required (up until the most recent recovery nLocktime reaches a lower limit determined by the current Bitcoin block height).</li>
+<li>At any time the most recent owner can create and sign a transaction spending the UTXO to an address of the most recent owner's choice (i.e. closure of the statechain).</li>
+    
+<p>The Mercury layer server is <em>blind</em> - that is the server <em>does not</em> and <em>cannot</em> know anything that would enable it to identify any coin (UTXO). This prevents any censorship and storage of any identifying data in the server - the server itself is not aware of bitcoin, and does not perform any verifcation of transactions. </p>
 <p>To achieve this the server cannot know or be able to derive in any way the following values:</p>
 <ul>
 <li>The TxID:vout of the statecoin UTXO</li>
 <li>The address (i.e. public key) of the UTXO</li>
 <li>Any signatures added to the bitcoin blockchain for the coin public key.</li>
 </ul>
-<p>This means that the server cannot:</p>
-<ul>
-<li>Learn of the shared public key it is co-signing for.</li>
-<li>Learn of the final (unblinded) form of any signatures it co-generates.</li>
-<li>Verify ANY details of backup or closure transactions (as this would reveal the statecoin TxID).</li>
-</ul>
-<p>All verification of backup transaction locktime decrementing sequence must be performed client side (i.e. by the receiving wallet). This requires that the full statechain and sequence of backup transactions is sent from sender to receiver and verified for each transfer (this can be done via the server with the data encrypted with the receiver public key). </p>
-<p>The server is no longer able to perform an explicit proof-of-publication of the globally unique coin ownership (via the SMT of coin TxIDs), as it cannot know these. It can however perform a proof-of-publication of its public key shares for each coin it is co-signing (i.e. SX, where X = 1,2,3 ...). These key shares can be used by the current owner to calulate the full shared public key and verify that their ownership is unique.</p>
 <h3 id="blind-two-party-schnorr-signatures">Blind two-party Schnorr signatures</h3>
-<p>Mercury layer employs Schnorr signatures via Taproot addresses for statecoins. To enable a signature to be generated over a shared public key (by the two private key shares of the server and owner) a blinded variant of the Musig2 protocol is employed. In this variant, one of the co-signing parties (the server) does not learn of 1) The full shared public key or 2) The final signature generated. An ephemeral key commitment scheme is employed to ensure Wagner based attacks are not possible. </p>
+<p>Mercury layer employs Schnorr signatures via Taproot addresses for statecoins. To enable a signature to be generated over a shared public key (by the two private key shares of the server and owner) a blinded variant of the Musig2 protocol is employed. In this variant, one of the co-signing parties (the server) does not learn of 1) The full shared public key or 2) The final signature generated. </p>
 <h3 id="client-transaction-verification">Client transaction verification</h3>
-<p>In the blinded mercury layer protocol, the server cannot verify what it signs, but can only state HOW MANY unique signatures it has generated for a specific shared key, and it will return this number when queried by a wallet. The wallet will then have to check that every single previous backup transaction signed has been correctly decremented, AND that the total number of value backup transactions it has verified matches the number of signatures the server has co-generated. This will then enable a receiving wallet to verify that no other valid transactions spending the statecoin output exist (given it trusts the server to return the correct number of signatures). </p>
+<p>The server cannot verify what it signs, but can only state HOW MANY unique signatures it has generated for a specific shared key, and it will return this number when queried by a wallet. The wallet will then have to check that every single previous backup transaction signed has been correctly decremented, AND that the total number of value backup transactions it has verified matches the number of signatures the server has co-generated. This will then enable a receiving wallet to verify that no other valid transactions spending the statecoin output exist (given it trusts the server to return the correct number of signatures). </p>
 <p>When it comes to closure, the server can no longer verify that any fee has been added to the closure transaction, and the wallet can just create any transaction it wants to end the chain. In this case, any fee collected by the SE must be done separately to the statecoin initialisation and closure transactions (and be required on initialisation, before the shared key is generated).</p>
 <h3 id="keyshare-publication">Keyshare publication</h3>
 <p>The server does not have access to the TxIDs of individual coins along with the user proof keys that it can publish. Instead, it takes each of the current public key shares for each coin in the system and publishes this list. This is then updated with each new coin or coin ownership change. This public key list is then commited to bitcoin via Mainstay for a proof-of-uniqueness. </p>
 <p>To verify the uniqueness of the ownership of the shared public key, the current owner then derives the full shared public key from this commitment and their or key share (P = o1.(s1.G)) and verifies it against the coin. </p>
 <h1 id="mercury-layer-protocol">Mercury Layer Protocol</h1>
 <h2 id="preliminaries">Preliminaries</h2>
-<p>The SE and each owner are required to generate private keys securely. Owners are required to verify ownership of UTXOs (this can be achieved via a wallet interface, and requires connection to an Electrum server or fully verifying Bitcoin node). Elliptic curve points (public keys) are depicted as upper case letter, and private keys as lower case letters. Elliptic curve point multiplication (i.e. generation of public keys from private keys) is denoted using the <code>.</code> symbol. The generator point of the elliptic curve standard used (e.g. secp256k1) is denoted as <code>G</code>. All arithmetic operations on secret values (in Zp) are modulo the field the EC standard.</p>
+<p>The blind server and each owner are required to generate private keys securely. Owners are required to verify ownership of UTXOs (this can be achieved via a wallet interface, and requires connection to an Electrum server or fully verifying Bitcoin node). Elliptic curve points (public keys) are depicted as upper case letter, and private keys as lower case letters. Elliptic curve point multiplication (i.e. generation of public keys from private keys) is denoted using the <code>.</code> symbol. The generator point of the elliptic curve standard used (e.g. secp256k1) is denoted as <code>G</code>. All arithmetic operations on secret values (in Zp) are modulo the field the EC standard.</p>
 <p>In addition, a public key encryption scheme is required for blinded private key information sent between parties. This should be compatible with the EC keys used for signatures, and ECIES is used. The notation for the use of ECIES operations is as follows: <code>Enc(m,K)</code> denotes the encryption of message <code>m</code> with public key <code>K = k.G</code> and <code>Dec(m,k)</code> denotes the decryption of message <code>m</code> using private key <code>k</code>.</p>
 <p>All transactions are created and signed using segregated witness, which enables input transaction IDs to be determined before signing and prevents their malleability. </p>
 <h2 id="initiation">Initiation</h2>
-<p>An user wants to create a statecoin for a specific amount of BTC, and they request that the SE begin initialize the process. To begin, the user must provide a valid <code>token_id</code> (UUID), which will be listed in the the server token database. This <code>token_id</code> is generated by the SE on payment of a fee (via a separate lighning or bitcoin payment). </p>
+<p>An user wants to create a statecoin for a specific amount of BTC, and they request that the server initialize the process. To begin, the user must provide a valid <code>token_id</code> (UUID), which will be listed in the the server token database. This <code>token_id</code> is generated by the server on payment of a fee (via a separate lighning or bitcoin payment). </p>
 <ol>
 <li>The initiator (Owner 1) generates a private key: <code>o1</code> (the UTXO private key share).</li>
-<li>Owner 1 then calculates the corresponding public key of the share <code>O1</code> and sends it to the SE: <code>O1 = o1.G</code></li>
-<li>Owner 1 requests a key share from the SE with a valid <code>token_id</code> and amount value <code>A</code>. </li>
-<li>The SE then generates a private key: <code>s1</code> (the SE private key share), calculates the corresponding public key and sends it to Owner 1: <code>S1 = s1.G</code> along with a <code>statechain_id</code> (UUID). The SE then stores <code>s1</code>, <code>S1</code> and <code>A</code> indexed with <code>statechain_id</code>. </li>
+<li>Owner 1 then calculates the corresponding public key of the share <code>O1</code>: <code>O1 = o1.G</code></li>
+<li>Owner 1 requests a key share from the server with a valid <code>token_id</code> and <code>auth_pubkey</code>. </li>
+<li>The server then generates a private key: <code>s1</code> (the server private key share), calculates the corresponding public key and returns it to Owner 1: <code>S1 = s1.G</code> along with a <code>statechain_id</code> (UUID). The server then stores <code>s1</code> indexed with <code>statechain_id</code>. </li>
 <li>Owner 1 then adds the public key they receive by their own public key to obtain the shared (aggregated) public key <code>P</code> (which corresponds to a shared private key of <code>p = o1 + s1</code>): <code>P = O1 + S1</code></li>
 <li>Owner 1 creates and broadcasts a funding transaction (<code>Tx0</code>) to pay an amount <code>A</code> to the address corresponding to <code>P</code>. This defines the UTXO <code>TxID:vout</code> (the outpoint). </li>
 <li>Owner 1 creates an unsigned <em>backup transaction</em> (<code>Tx1</code>) that pays the <code>P</code> output of <code>Tx0</code> to address of <code>O1</code>, and sets the <code>nLocktime</code> to the initial future block height <code>h0</code> (where <code>h0 = cheight + hinit</code>, <code>cheight</code> is the current Bitcoin block height and <code>hinit</code> is the initial locktime specified by the server).</li>
-<li>Owner 1 cooperates with SE to generate a valid signature on <code>Tx1</code></li>
+<li>Owner 1 cooperates with server to generate a valid signature on <code>Tx1</code></li>
 </ol>
 <h3 id="signature-generation">Signature generation</h3>
 <p>To generate a signature on <code>Tx1</code>, the owner first computes the sighash <code>m1</code>. 
 Owner 1 then generates a random ephemeral nonce <code>r2_1</code> and blinding nonce <code>b1</code> and computes <code>R2_1 = r2_1.G</code>
-Owner 1 then requests a co-signing from the SE sending commitments: <code>SHA256(R2_1)</code> and <code>SHA256(b1)</code>. 
-SE stores the commitments for <code>statechain_id</code> and generates a random <code>r1_1</code> and computes <code>R1_1 = r1_1.G</code>. <code>R1_1</code> is returned to Owner 1. 
-Owner 1 then computes <code>R_1 = R1_1 + r2_1.G + b1.P</code>, <code>e1 = SHA256(P||R_1||m1)</code> and <code>c1 = e1 + b1</code> and sends <code>c1</code> to the SE. 
-The SE then computes <code>sig1_1 = r1_1 + c1.s1</code> and sends to Owner 1 (and stores <code>c1</code> with <code>statechain_id</code>). 
+Owner 1 then requests a partial signature from the server which generates a random <code>r1_1</code> and computes <code>R1_1 = r1_1.G</code>. <code>R1_1</code> is returned to Owner 1. 
+Owner 1 then computes <code>R_1 = R1_1 + r2_1.G + b1.P</code>, <code>e1 = SHA256(P||R_1||m1)</code> and <code>c1 = e1 + b1</code> and sends <code>c1</code> to the server. 
+The server then computes <code>sig1_1 = r1_1 + c1.s1</code> and sends to Owner 1. 
 Owner 1 computes <code>sig2_1 = r2_1 + c1.o1</code> and <code>sig_1 = sig1_1 + sig2_1</code>. The full signature <code>(sig_1,R_1)</code> is then added to <code>Tx1</code>. </p>
 <ol start="10">
-<li><code>Tx1</code> is verified and stored by Owner 1, along with the values <code>b1</code>, <code>R1_1</code> and <code>e1</code>. </li>
-<li>The SE then adds the public key <code>S1</code> to the list of current statechain SE keys and publishes. </li>
+<li><code>Tx1</code> is verified and stored by Owner 1. </li>
+<li>The server then adds the public key <code>S1</code> to the list of current public key shares and publishes. </li>
 </ol>
 <h2 id="key-reassignment">Key Reassignment</h2>
-<p>Owner 1 wishes to transfer the value of the coin <code>A</code> to a new owner (Owner 2) (as a payment or as part of a swap). The protocol then proceeds as follows:</p>
+<p>Owner 1 wishes to transfer the value of the coin <code>A</code> to a new owner (Owner 2). The protocol then proceeds as follows:</p>
 <h3 id="sender">Sender</h3>
 <ol>
-<li>The receiver (Owner 2) generates a statechain (proof) private key <code>o2</code>. They then compute the corresponding public key <code>O2 = o2.G</code>.</li>
-<li><code>O2</code> then represents the Owner 2 'address' and is communicated to Owner 1 (or published) in order for them to 'send' the ownership.</li>
+<li>The receiver (Owner 2) generates a statechain private key <code>o2</code>. They then compute the corresponding public key <code>O2 = o2.G</code>.</li>
+<li><code>O2</code> then forms part of the Owner 2 'address' (concatenated with their new <code>auth_pubkey</code> and is communicated to Owner 1 (or published) in order for them to 'send' the ownership.</li>
 <li>Owner 1 then creates a new unsigned backup transaction <code>Tx2</code> paying the output of <code>Tx0</code> to address of <code>O2</code>, and sets the <code>nLocktime</code> to <code>h0 - (n-1)*c</code> where <code>c</code> is the confirmation interval and <code>n</code> is the owner number (i.e. 2). </li>
-<li>Owner 1 cooperates with SE to generate a valid signature on <code>Tx2</code></li>
+<li>Owner 1 cooperates with server to generate a valid signature on <code>Tx2</code></li>
 </ol>
 <h3 id="signature-generation-1">Signature generation</h3>
 <p>To generate a signature on <code>Tx2</code>, the owner first computes the sighash <code>m2</code>. 
 Owner 1 then generates a random ephemeral nonce <code>r2_2</code> and blinding nonce <code>b2</code> and computes <code>R2_2 = r2_2.G</code>
-Owner 1 then requests a co-signing from the SE sending commitments: <code>SHA256(R2_2)</code> and <code>SHA256(b2)</code>. 
-SE stores the commitments for <code>statechain_id</code> and generates a random <code>r1_2</code> and computes <code>R1_2 = r1_2.G</code>. <code>R1_2</code> is returned to Owner 1. 
-Owner 1 then computes <code>R_2 = R1_2 + r2_2.G + b2.P</code>, <code>e2 = SHA256(P||R_1||m1)</code> and <code>c2 = e2 + b2</code> and sends <code>c2</code> to the SE. 
-The SE then computes <code>sig1_2 = r1_2 + c2.s1</code> and sends to Owner 1 (and stores <code>c2</code> with <code>statechain_id</code>). 
+Owner 1 then requests a partial signature from the server which generates a random <code>r1_2</code> and computes <code>R1_2 = r1_2.G</code>. <code>R1_2</code> is returned to Owner 1. 
+Owner 1 then computes <code>R_2 = R1_2 + r2_2.G + b2.P</code>, <code>e2 = SHA256(P||R_1||m1)</code> and <code>c2 = e2 + b2</code> and sends <code>c2</code> to the server. 
+The server then computes <code>sig1_2 = r1_2 + c2.s1</code> and sends to Owner 1. 
 Owner 1 computes <code>sig2_2 = r2_2 + c2.o1</code> and <code>sig_2 = sig1_2 + sig2_2</code>. The full signature <code>(sig_2,R_2)</code> is then added to <code>Tx2</code>.</p>
 <ol start="4">
-<li>SE generates a random key <code>x1</code> and sends it to Owner 1. </li>
-<li>Owner 1 then computes <code>t1 = o1 + x1</code> and encrypts it with the Owner 2 public key (from the address): <code>Enc(t1,O2)</code></li>
+<li>The server then generates a random key <code>x1</code> on request and returns it to Owner 1. </li>
+<li>Owner 1 then computes <code>t1 = o1 + x1</code></li>
 <li>Owner 1 then concatinates the <code>Tx0</code> outpoint with the Owner 2 public key (<code>O2</code>) and signs it with their key <code>o1</code> to generate <code>SC_sig_1</code>. </li>
-<li>Owner 1 then sends Owner 2 a message containing five objects:
-a. All signed backup transactions: <code>Tx1</code> and <code>Tx2</code>
-b. For each backup transaction signature (<code>b</code>,<code>R2</code>): <code>b1</code>,<code>b2</code>,<code>R2_1</code> and <code>R2_2</code>. 
-c. <code>SC_sig_1</code>
-d. <code>Enc(t2,O2)</code>
-e. <code>statechain_id</code></li>
+<li>Owner 1 then creates a message containing four objects:
+a. All previous signed backup transactions: <code>Tx1</code> and <code>Tx2</code>
+b. <code>SC_sig_1</code>
+c. <code>t2</code>
+d. <code>statechain_id</code></li>
+<li>This message is then encrypted with the receiver <code>auth_pubkey</code>: <code>Enc(message,auth_pubkey)</code> and sent to the receiver (can be relayed).</li>
 </ol>
 <blockquote>
-<p>At this point the Owner 1 has sent all the information required to complete the reassignment to Owner 2 and is no longer involved in the protocol. Owner 2 then verifies the correctness and validity of the objects. </p>
+<p>At this point the Owner 1 has sent all the information required to complete the reassignment to Owner 2 and is no longer involved in the protocol. Owner 2 then verifies the correctness and validity of the message. </p>
 </blockquote>
 <h3 id="receiver">Receiver</h3>
 <ol>
+<li>Owner 2 decrypts the transfer message with their auth key.</li>
 <li>Owner 2 verifies that the latest backup transaction pays to <code>O2</code> and that the input (<code>Tx0</code>) is unspent and pays to <code>P</code>. </li>
 <li>Owner 2 takes the list of previous <code>K</code> backup transactions (<code>Txi i=1,...,K</code>) and for each one <code>i</code> verifies:
 a. The signature is valid. 
-b. The <code>nLocktimes</code> are decremented correctly (i.e. the latest <code>TxK</code> is the lowest). 
-c. Retreives <code>ci</code>, and commitments <code>SHA256(R2_i)</code> and <code>SHA256(bi)</code> from the SE. 
-d. Verifies the commitments to <code>R2_i</code> and <code>bi</code> and verfies that <code>ci = bi + SHA256(P||R_i||mi)</code> (where <code>mi</code> is the sighash of <code>Txi</code>). </li>
-<li>Owner 2 queries SE for 1) The total number of signatures generated for <code>statechain_id</code>: <code>N</code> and 2) Current SE public key: <code>S1</code>. </li>
+b. The <code>nLocktimes</code> are decremented correctly (i.e. the latest <code>TxK</code> is the lowest). </li>
+<li>Owner 2 queries the server for 1) The total number of signatures generated for <code>statechain_id</code>: <code>N</code> and 2) Current server public key share: <code>S1</code>. </li>
 <li>Owner 2 then verifies that <code>K = N</code> and then <code>O1 + S1 = P</code></li>
 </ol>
-<p>The SE key share update then proceeds as follows:</p>
+<p>The server key share update then proceeds as follows:</p>
 <ol start="5">
-<li>Owner 2 decrypts object <code>t1</code>: <code>Dec(t1,o2)</code> and then computes <code>t2 = t1 - o2</code>. </li>
-<li>Owner 2 then sends <code>t2</code> to the SE. </li>
-<li>SE the updates the private key share <code>s2 = s1 + t2 - x1 = s1 + x1 + o1 - o2 - x1 = s1 + o1 - o2</code></li>
+<li>Owner 2 computes <code>t2 = t1 - o2</code>. </li>
+<li>Owner 2 then sends <code>t2</code> to the server </li>
+<li>The server updates the private key share <code>s2 = s1 + t2 - x1 = s1 + x1 + o1 - o2 - x1 = s1 + o1 - o2</code></li>
 </ol>
 <blockquote>
-<p><code>s2</code> and <code>o2</code> are now key the private key shares of <code>P = (s2 + o2).G</code> which remains unchanged (i.e. <code>s2 + o2 = s1 + o1</code>), without anyone having learnt the full private key. Provided the SE deletes <code>s1</code>, then there is no way anyone but the current owner (with <code>o2</code>) can spend the output.</p>
+<p><code>s2</code> and <code>o2</code> are now key the private key shares of <code>P = (s2 + o2).G</code> which remains unchanged (i.e. <code>s2 + o2 = s1 + o1</code>), without anyone having learnt the full private key. Provided the server deletes <code>s1</code>, then there is no way anyone but the current owner (with <code>o2</code>) can spend the output.</p>
 </blockquote>
 <ol start="8">
-<li>The SE then adds the public key <code>S2</code> to the list of active key shares and publishes. </li>
+<li>The server then adds the public key <code>S2</code> to the list of active key shares and publishes. </li>
 </ol>
 <h2 id="orderly-closure">Orderly Closure</h2>
-<p>The current owner of a coin can at any time the statecoin by simply co-signing a transaction paying to any specified address. The server cannot identify a closure, but the coin can no longer be transferred to a new owner because the server will have produced an additional signature that cannot be verified as a valid backup by a receiver. </p>
+<p>The current owner of a UTXO can at any time spend the statecoin by simply co-signing a transaction paying to any specified address. The server cannot identify a closure, but the coin can no longer be transferred to a new owner because the server will have produced an additional signature that cannot be verified as a valid backup by a receiver. </p>
 <p>Closure proceeds as follows:</p>
 <ol>
 <li>The current owner (e.g. Owner 2) creates an unsigned transaction <code>TxW</code> that spends <code>Tx0</code> to a closure address <code>W</code>.</li>
-<li>The owner then co-signs this transaction with the SE (as above).  <code>TxW</code> is broadcast. </li>
-<li>The owner then sends the SE a closure notification (with their current <code>statechain_id</code>) that the coin is withdrawn so the SE can remove the coin public from the published key share list. </li>
+<li>The owner then co-signs this transaction with the server (as above).  <code>TxW</code> is broadcast. </li>
+<li>The owner then sends the server a closure notification (with their current <code>statechain_id</code>) that the coin is withdrawn so the server can remove the coin public from the published key share list. </li>
 </ol>
 <h2 id="backup-closure">Backup closure</h2>
-<p>In the case that the SE disappears or does not cooperate with the current owner, the current owner can reclaim their funds to an address they control by submitting their backup transaction when the <code>nLocktime</code> is reached. </p>
+<p>In the case that the server disappears or does not cooperate with the current owner, the current owner can reclaim their funds to an address they control by submitting their backup transaction when the <code>nLocktime</code> is reached. </p>
 
             
         </div>
