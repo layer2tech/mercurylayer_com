@@ -26,16 +26,6 @@ Once initialised, the server can then perform two operations using the key share
 
 The server does not ever receive any other information regarding the client state. 
 
-<br><br>
-<p align="center">
-<img src="fig0.png" align="middle" width="60" vspace="20">
-</p>
-
-<p align="center">
-  Mercury server key share operations. 
-</p>
-<br><br>
-
 ##  Statechain transfers
 
 Using the mercury service, clients can use the key share update rules applied by the server to securely transfer ownership of a Bitcoin UTXO to a new client while maintaining self-custody and without requiring a blockchain transaction. 
