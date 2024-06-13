@@ -1,4 +1,4 @@
 User-agent: *
 Disallow:
 Allow: /
-Sitemap: https://www.mercurylayer.com/sitemap.xml
+Sitemap: https://mercurylayer.com/sitemap.xml
