@@ -14,6 +14,9 @@
         <h3 class="text-center title-text">
             Blinded signing service: enabling multiparty computation statechains
         </h3>
+        <center>
+            <button class="button" onclick="window.location.href='https://api.mercurylayer.com'">Status</button>
+        </center>
     </section>
     <div>
         <video class="hero-video" style="border-radius: 100px; max-width: 80%;" muted playsInline autoPlay loop>
@@ -41,6 +44,23 @@
 <style>
     .hero section {
         padding: 0 5rem;
+    }
+    .button {
+        display: inline-block;
+        padding: 10px 20px;
+        font-size: 20px;
+        font-weight: bold;
+        color: #0a0543;
+        border: none;
+        border-radius: 50px;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+    .button:hover {
+        background-color: #0056b3;
+        color: white;
     }
     @media screen and (max-width: 768px) {
         .hero section {
