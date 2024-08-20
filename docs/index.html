@@ -27,6 +27,23 @@
         --code-color: #f7ebeb;
         --code-background-color: rgb(11, 145, 186);
     }
+    .button {
+        display: inline-block;
+        padding: 10px 20px;
+        font-size: 20px;
+        font-weight: bold;
+        color: #0a0543;
+        border: none;
+        border-radius: 50px;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+    .button:hover {
+        background-color: #0056b3;
+        color: white;
+    }
 </style>
     
     <link href="https://fonts.googleapis.com/css?family=Alfa+Slab+One&display=swap" rel="stylesheet">
@@ -76,6 +93,9 @@
         <h3 class="text-center title-text">
             Blinded signing service: enabling multiparty computation statechains
         </h3>
+        <center>
+            <button class="button" onclick="window.location.href='https://api.mercurylayer.com'">Status</button>
+        </center>
     </section>
     <div>
         <video class="hero-video" style="border-radius: 100px; max-width: 80%;" muted playsInline autoPlay loop>
