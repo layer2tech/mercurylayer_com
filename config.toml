@@ -11,6 +11,7 @@ theme = "juice"
 juice_logo_name = "Mercury Layer"
 juice_logo_path = "mercurywallet-icon.png"
 juice_extra_menu = [
+    { title = "Docs", link = "https://docs.mercurylayer.com" },
     { title = "Telegram", link = "https://t.me/mercury_layer" },
     { title = "Twitter", link = "https://twitter.com/mercurylayer" },
     { title = "Github", link = "https://github.com/commerceblock/mercurylayer"}
