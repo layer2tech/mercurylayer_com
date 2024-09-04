@@ -274,7 +274,7 @@
 <li>The server then generates a private key: <code>s1</code>, calculates the corresponding public key and sends it to Owner 1: <code>S1 = s1.G</code> along with a <code>statechain_id</code> (UUID). The server then stores <code>s1</code> indexed with <code>statechain_id</code>. </li>
 <li>Owner 1 then adds the public key they receive to their own public key to obtain the shared (aggregated) public key <code>P</code> (which corresponds to a shared private key of <code>p = o1 + s1</code>): <code>P = O1 + S1</code></li>
 <li>Owner 1 creates and broadcasts a funding transaction (<code>Tx0</code>) to pay an amount <code>A</code> to the address corresponding to <code>P</code>. This defines the UTXO <code>TxID:vout</code> (the outpoint). </li>
-<li>Owner 1 creates an unsigned <em>backup transaction</em> (<code>Tx1</code>) that pays the <code>P</code> output of <code>Tx0</code> to address of <code>O1</code>, and sets the <code>nLocktime</code> to the initial future block height <code>h0</code> (where <code>h0 = cheight + hinit</code>, <code>cheight</code> is the current Bitcoin block height and <code>hinit</code> is the initial locktime specified by the server).</li>
+<li>Owner 1 creates an unsigned <em>backup transaction</em> (<code>Tx1</code>) that pays the <code>P</code> output of <code>Tx0</code> to address of <code>O1</code>, and sets the <code>nLocktime</code> to the initial future block height <code>h0</code> (where <code>h0 = cheight + hinit</code>, <code>cheight</code> is the current Bitcoin block height and <code>hinit</code> is the initial locktime specified by the server). The <code>nSequence</code> number is set to zero.</li>
 <li>Owner 1 the utilises the server to generate a valid signature on <code>Tx1</code> as follows:</li>
 </ol>
 <h3 id="signature-generation">Signature generation</h3>
@@ -294,7 +294,7 @@ Owner 1 computes <code>sig2_1 = r2_1 + c1.o1</code> and <code>sig_1 = sig1_1 + s
 <ol>
 <li>The receiver (Owner 2) generates a statechain private key share <code>o2</code>. They then compute the corresponding public key <code>O2 = o2.G</code> along with a new <code>auth_pubkey</code>. </li>
 <li><code>O2||auth_pubkey</code> then represents the Owner 2 'address' and is communicated to Owner 1 (or published) in order for them to 'send' the ownership.</li>
-<li>Owner 1 then creates a new unsigned backup transaction <code>Tx2</code> paying the output of <code>Tx0</code> to address of <code>O2</code>, and sets the <code>nLocktime</code> to <code>h0 - (n-1)*c</code> where <code>c</code> is the confirmation interval and <code>n</code> is the owner number (i.e. 2). </li>
+<li>Owner 1 then creates a new unsigned backup transaction <code>Tx2</code> paying the output of <code>Tx0</code> to address of <code>O2</code>, and sets the <code>nLocktime</code> to <code>h0 - (n-1)*c</code> where <code>c</code> is the confirmation interval and <code>n</code> is the owner number (i.e. 2). The <code>nSequence</code> number is set to zero.</li>
 <li>Owner 1 cooperates with server to generate a blind partial signature on <code>Tx2</code> as follows:</li>
 </ol>
 <h3 id="signature-generation-1">Signature generation</h3>
@@ -325,6 +325,8 @@ d. <code>statechain_id</code></li>
 <li>Owner 2 takes the list of previous <code>K</code> backup transactions (<code>Txi i=1,...,K</code>) and for each one <code>i</code> verifies:
 a. The signature is valid. 
 b. The <code>nLocktimes</code> are decremented correctly (i.e. the latest <code>TxK</code> is the lowest). </li>
+c. The transaction has been constructed exactly according to the sender implimentation.
+d. That the latest <code>nLocktime</code> is not expired accordning to the current block height. 
 <li>Owner 2 queries server for 1) The total number of signatures generated for <code>statechain_id</code>: <code>N</code> and 2) Current server public key share: <code>S1</code>. </li>
 <li>Owner 2 then verifies that <code>K = N</code> and then <code>O1 + S1 = P</code></li>
 </ol>
